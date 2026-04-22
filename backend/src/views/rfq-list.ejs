@@ -4,7 +4,9 @@
     <p class="text-uppercase text-secondary fw-bold mb-1">Auction listing</p>
     <h1 class="display-6 fw-bold">British Auctions</h1>
   </div>
-  <a href="/rfqs/new" class="btn btn-success">New RFQ</a>
+  <% if (user && user.role === 'BUYER') { %>
+    <a href="/rfqs/new" class="btn btn-success">New RFQ</a>
+  <% } %>
 </div>
 
 <% if (rfqs.length === 0) { %>
