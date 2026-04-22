@@ -105,7 +105,7 @@ function extensionReasonLabel(reason) {
   return reason;
 }
 
-export async function createRfq(input) {
+export async function createRfq(input, buyerId) {
   const bidStartTime = parseDate(input.bidStartTime, 'Bid Start Time');
   const bidCloseTime = parseDate(input.bidCloseTime, 'Bid Close Time');
   const forcedCloseTime = parseDate(input.forcedCloseTime, 'Forced Close Time');
@@ -122,6 +122,7 @@ export async function createRfq(input) {
     const rfq = await tx.rFQ.create({
       data: {
         name: input.name.trim(),
+        buyerId,
         bidStartTime,
         bidCloseTime,
         forcedCloseTime,
@@ -181,13 +182,14 @@ export async function getRfqDetails(id) {
   return { rfq: updated, bids: rankings, rankings, logs, summary };
 }
 
-export async function placeBid(rfqId, input) {
+export async function placeBid(rfqId, input, options = {}) {
   const freightCharges = nonNegativeNumber(input.freightCharges, 'Freight charges');
   const originCharges = nonNegativeNumber(input.originCharges, 'Origin charges');
   const destinationCharges = nonNegativeNumber(input.destinationCharges, 'Destination charges');
   const price = freightCharges + originCharges + destinationCharges;
+  const supplierName = options.supplierName || input.supplierName;
 
-  if (!input.supplierName?.trim()) throw httpError(400, 'Supplier name is required');
+  if (!supplierName?.trim()) throw httpError(400, 'Supplier name is required');
   if (!input.transitTime?.trim()) throw httpError(400, 'Transit time is required');
 
   const result = await prisma.$transaction(async (tx) => {
@@ -208,9 +210,9 @@ export async function placeBid(rfqId, input) {
 
     const beforeRankings = getRankingsFromBids(rfq.bids);
     const supplier = await tx.supplier.upsert({
-      where: { name: input.supplierName.trim() },
+      where: { name: supplierName.trim() },
       update: {},
-      create: { name: input.supplierName.trim() }
+      create: { name: supplierName.trim() }
     });
 
     const bid = await tx.bid.create({

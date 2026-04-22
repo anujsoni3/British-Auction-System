@@ -6,6 +6,7 @@ import {
   listRfqs,
   placeBid
 } from '../services/rfqService.js';
+import { prisma } from '../prisma/client.js';
 
 export async function createRfqController(req, res, next) {
   try {
@@ -34,7 +35,18 @@ export async function getRfqController(req, res, next) {
 
 export async function placeBidController(req, res, next) {
   try {
-    res.status(201).json(await placeBid(req.params.id, req.body));
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { name: true, role: true }
+    });
+
+    if (!currentUser || currentUser.role !== 'SUPPLIER') {
+      return res.status(403).json({ error: 'Only suppliers can place bids' });
+    }
+
+    res.status(201).json(
+      await placeBid(req.params.id, req.body, { supplierName: currentUser.name })
+    );
   } catch (err) {
     next(err);
   }
