@@ -7,15 +7,16 @@ import {
   listRfqsController,
   placeBidController
 } from '../controllers/rfqController.js';
+import { requireAuth, requireRole } from '../auth/middleware.js';
 
 const router = Router();
 
-router.post('/', createRfqController);
-router.get('/', listRfqsController);
-router.get('/:id', getRfqController);
-router.post('/:id/bid', placeBidController);
-router.post('/:id/bids', placeBidController);
-router.get('/:id/logs', getLogsController);
-router.post('/:id/close-check', closeCheckController);
+router.post('/', requireAuth, requireRole('BUYER'), createRfqController);
+router.get('/', requireAuth, listRfqsController);
+router.get('/:id', requireAuth, getRfqController);
+router.post('/:id/bid', requireAuth, requireRole('SUPPLIER'), placeBidController);
+router.post('/:id/bids', requireAuth, requireRole('SUPPLIER'), placeBidController);
+router.get('/:id/logs', requireAuth, getLogsController);
+router.post('/:id/close-check', requireAuth, requireRole('BUYER'), closeCheckController);
 
 export default router;

@@ -9,7 +9,7 @@ import {
 
 export async function createRfqController(req, res, next) {
   try {
-    const rfq = await createRfq(req.body);
+    const rfq = await createRfq(req.body, req.user.userId);
     res.status(201).json(rfq);
   } catch (err) {
     next(err);
