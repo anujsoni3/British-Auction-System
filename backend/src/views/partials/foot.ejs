@@ -1,0 +1,25 @@
+    </main>
+    <script>
+      document.querySelectorAll('[data-countdown]').forEach((element) => {
+        const closeTime = new Date(element.dataset.countdown).getTime();
+        const status = element.dataset.status;
+        function tick() {
+          if (status !== 'ACTIVE') {
+            element.textContent = status.replace('_', ' ');
+            return;
+          }
+          const diff = closeTime - Date.now();
+          if (diff <= 0) {
+            element.textContent = 'Close check due';
+            return;
+          }
+          const minutes = Math.floor(diff / 60000);
+          const seconds = Math.floor((diff % 60000) / 1000);
+          element.textContent = `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+        }
+        tick();
+        setInterval(tick, 1000);
+      });
+    </script>
+  </body>
+</html>

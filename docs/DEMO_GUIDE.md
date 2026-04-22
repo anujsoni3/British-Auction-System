@@ -1,4 +1,4 @@
-# Demo Guide
+# Verification Guide
 
 ## Preparation
 
@@ -13,25 +13,15 @@ npm run setup:db
 npm run dev
 ```
 
-4. Start the frontend:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
 ## Evaluator Walkthrough
 
-1. Open the frontend and stay in Buyer role.
+1. Open `http://localhost:5000/rfqs`.
 2. Create a British Auction RFQ.
-3. Confirm the listing shows status, lowest bid, current close, forced close, and countdown.
+3. Confirm the listing shows status, lowest bid, bid close, forced close, and countdown.
 4. Open the RFQ details page.
-5. Switch to Supplier role.
-6. Submit a quote and show L1/L2 rankings.
-7. Use a near-close auction from seed data to demonstrate automatic extension.
-8. Show the activity log entries for bid submission and time extension reason.
-9. Click Run close check to demonstrate status refresh.
+5. Submit a supplier quote and show L1/L2 rankings.
+6. Use a near-close auction from sample data to verify automatic extension.
+7. Show the activity log entries for bid placement and time extension reason.
 
 ## Talking Points
 

@@ -1,16 +1,26 @@
 import express from 'express';
 import cors from 'cors';
+import methodOverride from 'method-override';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from './config/env.js';
-import { pool } from './db/pool.js';
-import rfqRouter from './routes/rfqs.js';
+import { prisma } from './prisma/client.js';
+import rfqRouter from './routes/rfqRoutes.js';
+import pageRouter from './routes/pageRoutes.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
 app.use(cors({ origin: env.clientOrigin }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(methodOverride('_method'));
+app.set('view engine', 'ejs');
+app.set('views', join(__dirname, 'views'));
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'british-auction-api' });
+  res.send('OK');
 });
 
 app.get('/api/health', (_req, res) => {
@@ -19,17 +29,22 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/health/db', async (_req, res, next) => {
   try {
-    const result = await pool.query('SELECT NOW() AS server_time');
-    res.json({ ok: true, database: 'connected', serverTime: result.rows[0].server_time });
+    const result = await prisma.$queryRaw`SELECT NOW() AS server_time`;
+    res.json({ ok: true, database: 'connected', serverTime: result[0].server_time });
   } catch (err) {
     next(err);
   }
 });
 
+app.use('/', pageRouter);
+app.use('/rfq', rfqRouter);
 app.use('/api/rfqs', rfqRouter);
 
 app.use((err, _req, res, _next) => {
   if (err.code === '23505') {
+    return res.status(409).json({ error: 'A record with this unique value already exists' });
+  }
+  if (err.code === 'P2002') {
     return res.status(409).json({ error: 'A record with this unique value already exists' });
   }
 

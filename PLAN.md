@@ -9,7 +9,7 @@ Build a simplified RFQ platform where buyers can create British Auctions and sup
 - Transparent supplier ranking with L1, L2, L3 visibility.
 - Configurable extension triggers for bid activity, any rank change, or L1 rank change.
 - Forced close guarantee so auctions never run beyond the buyer-defined deadline.
-- Demo role switch for evaluator-friendly Buyer and Supplier workflows.
+- Server-rendered RFQ and supplier bidding flow for evaluator-friendly walkthroughs.
 - Deployable PERN architecture using Neon PostgreSQL.
 
 ## Core Features
@@ -20,12 +20,12 @@ Build a simplified RFQ platform where buyers can create British Auctions and sup
 - Live auction listing with lowest bid and close times.
 - Auction detail page with rankings, quote details, configuration, and activity log.
 - Backend validation for forced close and bid eligibility.
-- Seed data and rule checks for assignment demonstration.
+- Sample data and rule checks for assignment verification.
 
 ## Technology Stack
 
-- Frontend: React, Vite, React Router, CSS.
-- Backend: Node.js, Express, pg, dotenv, CORS.
+- Frontend: EJS, Bootstrap.
+- Backend: Node.js, Express, Prisma ORM, dotenv, CORS.
 - Database: PostgreSQL hosted on Neon.
 - Deployment: Vercel or Netlify for frontend; Render or Railway for backend.
 
@@ -37,7 +37,7 @@ Build a simplified RFQ platform where buyers can create British Auctions and sup
 4. `feat: build rfq creation and auction listing UI`
 5. `feat: add supplier bidding and auction details page`
 6. `docs: add hld schema and assignment deliverables`
-7. `test: add demo seed data and auction rule checks`
+7. `test: add sample data and auction rule checks`
 8. `chore: prepare app for deployment`
 
 ## Testing Checklist

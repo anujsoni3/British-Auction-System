@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TriggerType {
+  ANY_BID
+  ANY_RANK_CHANGE
+  L1_CHANGE
+}
+
+enum AuctionStatus {
+  SCHEDULED
+  ACTIVE
+  CLOSED
+  FORCE_CLOSED
+}
+
+enum LogEventType {
+  RFQ_CREATED
+  BID_PLACED
+  AUCTION_EXTENDED
+  STATUS_UPDATED
+}
+
+model RFQ {
+  id                   String        @id @default(uuid())
+  name                 String
+  bidStartTime         DateTime
+  bidCloseTime         DateTime
+  forcedCloseTime      DateTime
+  triggerWindowMinutes Int
+  extensionMinutes     Int
+  triggerType          TriggerType
+  status               AuctionStatus @default(ACTIVE)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  bids                 Bid[]
+  logs                 AuctionLog[]
+
+  @@index([status])
+  @@index([bidCloseTime])
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  bids      Bid[]
+}
+
+model Bid {
+  id                 String   @id @default(uuid())
+  rfqId              String
+  supplierId         String
+  price              Decimal  @db.Decimal(12, 2)
+  freightCharges     Decimal  @db.Decimal(12, 2)
+  originCharges      Decimal  @db.Decimal(12, 2)
+  destinationCharges Decimal  @db.Decimal(12, 2)
+  transitTime        String
+  createdAt          DateTime @default(now())
+  rfq                RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplier           Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([rfqId, price, createdAt])
+}
+
+model AuctionLog {
+  id        String       @id @default(uuid())
+  rfqId     String
+  eventType LogEventType
+  message   String
+  createdAt DateTime     @default(now())
+  rfq       RFQ          @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+
+  @@index([rfqId, createdAt])
+}

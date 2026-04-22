@@ -6,9 +6,9 @@ A deployable PERN application for running British Auction style RFQs. Buyers cre
 
 - PostgreSQL / Neon
 - Node.js + Express
-- React + Vite
+- Prisma ORM
+- EJS + Bootstrap
 - REST APIs
-- Demo role switch for Buyer and Supplier flows
 
 ## Local Setup
 
@@ -22,27 +22,23 @@ npm run setup:db
 npm run dev
 ```
 
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
+Open:
 
-## Demo Flow
+`http://localhost:5000/rfqs`
 
-1. Open the frontend and switch to Buyer.
-2. Create an RFQ with British Auction configuration.
-3. Switch to Supplier and submit bids.
-4. Watch rankings, current close time, and the activity log update.
+## Evaluator Flow
+
+1. Create an RFQ with British Auction configuration.
+2. Open RFQ details.
+3. Submit supplier bids.
+4. Watch rankings, current close time, countdown, and logs update.
 
 ## Deployment
 
 - Database: Neon PostgreSQL
-- Backend: Render or Railway
-- Frontend: Vercel or Netlify
+- Backend + EJS frontend: Render or Railway
 
-Set the backend `DATABASE_URL`, `CLIENT_ORIGIN`, and `PORT`. Set the frontend `VITE_API_BASE_URL` to the deployed backend API URL.
+Set the backend `DATABASE_URL`, `CLIENT_ORIGIN`, and `PORT`.
 
 ### Render Backend
 
@@ -55,22 +51,16 @@ The repository includes `render.yaml`. Create a Render Blueprint or Web Service 
 Run the migration once after deployment:
 
 ```bash
-npm run migrate
+npm run deploy:migrate
 npm run seed
 ```
-
-### Vercel Frontend
-
-Use `frontend` as the project root and set:
-
-- `VITE_API_BASE_URL=https://your-backend-url/api`
 
 ## Assignment Deliverables
 
 - HLD: `docs/HLD.md`
 - Schema design: `docs/SCHEMA.md`
 - API reference: `docs/API.md`
-- Demo guide: `docs/DEMO_GUIDE.md`
+- Verification guide: `docs/DEMO_GUIDE.md`
 - Phase plan: `PLAN.md`
 - Backend code: `backend/`
 - Frontend code: `frontend/`

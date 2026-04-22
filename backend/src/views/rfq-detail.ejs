@@ -1,0 +1,94 @@
+<%- include('partials/head') %>
+<div class="d-flex justify-content-between gap-3 align-items-start mb-4">
+  <div>
+    <span class="badge text-bg-primary mb-2"><%= rfq.status.replace('_', ' ') %></span>
+    <h1 class="display-6 fw-bold"><%= rfq.name %></h1>
+    <p class="text-secondary mb-0">Trigger: <%= rfq.triggerType.replaceAll('_', ' ') %> | Window: <%= rfq.triggerWindowMinutes %>m | Extension: <%= rfq.extensionMinutes %>m</p>
+  </div>
+  <div class="text-end">
+    <div class="fw-bold">Countdown</div>
+    <div data-countdown="<%= rfq.bidCloseTime.toISOString() %>" data-status="<%= rfq.status %>"></div>
+  </div>
+</div>
+
+<% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-bold">Bids and Rankings</div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Rank</th>
+              <th>Supplier</th>
+              <th>Freight</th>
+              <th>Origin</th>
+              <th>Destination</th>
+              <th>Total Price</th>
+              <th>Transit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (rankings.length === 0) { %>
+              <tr><td colspan="7" class="text-center text-secondary py-4">No bids submitted yet.</td></tr>
+            <% } %>
+            <% rankings.forEach((bid) => { %>
+              <tr class="<%= bid.rank === 'L1' ? 'rank-l1' : '' %>">
+                <td><span class="badge text-bg-dark"><%= bid.rank %></span></td>
+                <td class="fw-bold"><%= bid.supplier.name %></td>
+                <td><%= Number(bid.freightCharges).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
+                <td><%= Number(bid.originCharges).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
+                <td><%= Number(bid.destinationCharges).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
+                <td class="fw-bold"><%= Number(bid.price).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
+                <td><%= bid.transitTime %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header fw-bold">Auction Logs</div>
+      <ul class="list-group list-group-flush">
+        <% logs.forEach((log) => { %>
+          <li class="list-group-item">
+            <div class="fw-bold"><%= log.eventType.replaceAll('_', ' ') %></div>
+            <div><%= log.message %></div>
+            <small class="text-secondary"><%= new Date(log.createdAt).toLocaleString('en-IN') %></small>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <form class="card shadow-sm p-4" method="post" action="/rfqs/<%= rfq.id %>/bid">
+      <h2 class="h5 fw-bold mb-3">Place Supplier Bid</h2>
+      <div class="mb-3">
+        <label class="form-label">Supplier Name</label>
+        <input class="form-control" name="supplierName" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Freight Charges</label>
+        <input class="form-control" type="number" min="0" step="0.01" name="freightCharges" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Origin Charges</label>
+        <input class="form-control" type="number" min="0" step="0.01" name="originCharges" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Destination Charges</label>
+        <input class="form-control" type="number" min="0" step="0.01" name="destinationCharges" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Transit Time</label>
+        <input class="form-control" name="transitTime" placeholder="3 days" required>
+      </div>
+      <button class="btn btn-success w-100" type="submit">Submit Bid</button>
+    </form>
+  </div>
+</div>
+<%- include('partials/foot') %>

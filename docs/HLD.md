@@ -4,18 +4,21 @@
 
 ```mermaid
 flowchart LR
-  Buyer[Buyer Demo Role] --> React[React + Vite Frontend]
-  Supplier[Supplier Demo Role] --> React
-  React -->|REST API| Express[Node + Express Backend]
+  Buyer[Buyer] --> EJS[EJS + Bootstrap Frontend]
+  Supplier[Supplier] --> EJS
+  EJS --> Express[Node + Express Backend]
+  Client[API Client] -->|REST API| Express
   Express --> AuctionEngine[British Auction Engine]
-  Express --> Postgres[(Neon PostgreSQL)]
+  Express --> Prisma[Prisma ORM]
+  Prisma --> Postgres[(Neon PostgreSQL)]
   AuctionEngine --> Postgres
 ```
 
 ## Components
 
-- React frontend handles RFQ creation, auction listing, detail view, role switching, and bid submission.
+- EJS + Bootstrap frontend handles RFQ creation, listing, details, bid submission, rankings, countdown, and logs.
 - Express backend exposes REST APIs and owns all validation.
+- Prisma ORM manages database access and migrations.
 - Auction engine calculates rankings, detects trigger conditions, and caps extensions at forced close.
 - Neon PostgreSQL stores RFQs, suppliers, bids, and activity logs.
 
@@ -28,9 +31,9 @@ sequenceDiagram
   participant E as Auction Engine
   participant D as PostgreSQL
 
-  S->>A: POST /api/rfqs/:id/bids
-  A->>D: Lock RFQ and read existing bids
-  A->>D: Insert supplier and bid
+  S->>A: POST /rfq/:id/bid
+  A->>D: Read RFQ and existing bids
+  A->>D: Insert supplier and bid through Prisma
   A->>E: Compare before/after ranking
   E-->>A: Extension decision
   A->>D: Update close time and write logs

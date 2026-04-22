@@ -1,0 +1,43 @@
+<%- include('partials/head') %>
+<div class="d-flex justify-content-between align-items-end mb-3">
+  <div>
+    <p class="text-uppercase text-secondary fw-bold mb-1">Auction listing</p>
+    <h1 class="display-6 fw-bold">British Auctions</h1>
+  </div>
+  <a href="/rfqs/new" class="btn btn-success">New RFQ</a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>RFQ Name</th>
+          <th>Lowest Bid</th>
+          <th>Bid Close</th>
+          <th>Forced Close</th>
+          <th>Status</th>
+          <th>Countdown</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (rfqs.length === 0) { %>
+          <tr><td colspan="7" class="text-center text-secondary py-4">No RFQs yet.</td></tr>
+        <% } %>
+        <% rfqs.forEach((rfq) => { %>
+          <tr>
+            <td class="fw-bold"><%= rfq.name %></td>
+            <td><%= rfq.lowestBid ? Number(rfq.lowestBid).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) : 'No bids' %></td>
+            <td><%= new Date(rfq.bidCloseTime).toLocaleString('en-IN') %></td>
+            <td><%= new Date(rfq.forcedCloseTime).toLocaleString('en-IN') %></td>
+            <td><span class="badge text-bg-primary"><%= rfq.status.replace('_', ' ') %></span></td>
+            <td><span data-countdown="<%= rfq.bidCloseTime.toISOString() %>" data-status="<%= rfq.status %>"></span></td>
+            <td><a class="btn btn-sm btn-outline-success" href="/rfqs/<%= rfq.id %>">Open</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<%- include('partials/foot') %>

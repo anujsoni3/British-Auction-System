@@ -7,24 +7,22 @@ Stores British Auction RFQ configuration and current auction state.
 Important columns:
 - `reference_id`
 - `name`
-- `bid_start_time`
-- `original_bid_close_time`
-- `current_bid_close_time`
-- `forced_bid_close_time`
-- `pickup_service_date`
-- `trigger_window_minutes`
-- `extension_duration_minutes`
-- `extension_trigger_type`
+- `bidStartTime`
+- `bidCloseTime`
+- `forcedCloseTime`
+- `triggerWindowMinutes`
+- `extensionMinutes`
+- `triggerType`
 - `status`
 
 Validation:
 - forced close must be greater than original close.
-- current close must be less than or equal to forced close.
-- extension trigger type must be `BID_RECEIVED`, `ANY_RANK_CHANGE`, or `L1_RANK_CHANGE`.
+- bid close must be less than or equal to forced close.
+- extension trigger type must be `ANY_BID`, `ANY_RANK_CHANGE`, or `L1_CHANGE`.
 
 ## `suppliers`
 
-Stores demo supplier/carrier names.
+Stores supplier/carrier names.
 
 Important columns:
 - `carrier_name`
@@ -39,10 +37,9 @@ Important columns:
 - `freight_charges`
 - `origin_charges`
 - `destination_charges`
-- `total_price`
+- `price`
 - `transit_time`
-- `quote_validity`
-- `submitted_at`
+- `createdAt`
 
 Ranking:
 - Bids are ordered by `total_price ASC, submitted_at ASC`.
