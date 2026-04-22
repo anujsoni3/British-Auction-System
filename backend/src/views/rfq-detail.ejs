@@ -1,9 +1,17 @@
 <%- include('partials/head') %>
 <% const money = (value) => Number(value || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); %>
+<%
+  const statusBadge = {
+    ACTIVE: { label: 'ACTIVE', emoji: '🟢', className: 'text-bg-success' },
+    CLOSED: { label: 'CLOSED', emoji: '🔴', className: 'text-bg-danger' },
+    FORCE_CLOSED: { label: 'FORCE CLOSED', emoji: '⚫', className: 'status-force-closed' },
+    SCHEDULED: { label: 'SCHEDULED', emoji: '⏳', className: 'text-bg-secondary' }
+  }[rfq.status] || { label: rfq.status.replaceAll('_', ' '), emoji: 'ℹ️', className: 'text-bg-secondary' };
+%>
 <script>document.body.dataset.autoRefresh = '<%= rfq.status === "ACTIVE" ? "true" : "false" %>';</script>
 <div class="d-flex justify-content-between gap-3 align-items-start mb-4">
   <div>
-    <span class="badge text-bg-primary mb-2"><%= rfq.status.replace('_', ' ') %></span>
+    <span class="badge <%= statusBadge.className %> mb-2"><%= statusBadge.emoji %> <%= statusBadge.label %></span>
     <h1 class="display-6 fw-bold"><%= rfq.name %></h1>
     <p class="text-secondary mb-0">Trigger: <%= rfq.triggerType.replaceAll('_', ' ') %> | Window: <%= rfq.triggerWindowMinutes %>m | Extension: <%= rfq.extensionMinutes %>m</p>
   </div>
@@ -67,7 +75,7 @@
           </thead>
           <tbody>
             <% if (rankings.length === 0) { %>
-              <tr><td colspan="7" class="text-center text-secondary py-4">No bids submitted yet.</td></tr>
+              <tr><td colspan="7" class="text-center text-secondary py-4">No bids yet. Be the first to place a bid.</td></tr>
             <% } %>
             <% rankings.forEach((bid) => { %>
               <tr class="<%= bid.rank === 'L1' ? 'rank-l1' : '' %>">

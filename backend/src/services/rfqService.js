@@ -97,6 +97,13 @@ function extensionDecision(rfq, beforeRankings, afterRankings, now = new Date())
   };
 }
 
+function extensionReasonLabel(reason) {
+  if (reason === 'any bid was placed in the trigger window') return 'new bid activity';
+  if (reason === 'supplier ranking changed') return 'rank change';
+  if (reason === 'L1 bidder changed') return 'L1 change';
+  return reason;
+}
+
 export async function createRfq(input) {
   const bidStartTime = parseDate(input.bidStartTime, 'Bid Start Time');
   const bidCloseTime = parseDate(input.bidCloseTime, 'Bid Close Time');
@@ -227,11 +234,12 @@ export async function placeBid(rfqId, input) {
         where: { id: rfqId },
         data: { bidCloseTime: extension.newCloseTime }
       });
+      const extensionByMinutes = Math.round((extension.newCloseTime.getTime() - extension.previousCloseTime.getTime()) / 60000);
       await tx.auctionLog.create({
         data: {
           rfqId,
           eventType: 'AUCTION_EXTENDED',
-          message: `Auction extended due to ${extension.reason}. Close time moved from ${extension.previousCloseTime.toISOString()} to ${extension.newCloseTime.toISOString()}`
+          message: `Auction extended by ${extensionByMinutes} min due to ${extensionReasonLabel(extension.reason)}. Close time moved from ${extension.previousCloseTime.toISOString()} to ${extension.newCloseTime.toISOString()}`
         }
       });
     }
