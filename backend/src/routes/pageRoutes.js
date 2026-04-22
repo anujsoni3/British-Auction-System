@@ -3,7 +3,9 @@ import { closeCheck, createRfq, getRfqDetails, listRfqs, placeBid } from '../ser
 
 const router = Router();
 
-router.get('/', (_req, res) => res.redirect('/rfqs'));
+router.get('/', (_req, res) => {
+  res.render('landing');
+});
 
 router.get('/rfqs', async (_req, res, next) => {
   try {
