@@ -45,6 +45,27 @@ npm run dev
 
 Set the backend `DATABASE_URL`, `CLIENT_ORIGIN`, and `PORT`. Set the frontend `VITE_API_BASE_URL` to the deployed backend API URL.
 
+### Render Backend
+
+The repository includes `render.yaml`. Create a Render Blueprint or Web Service using `backend` as the root directory, then set:
+
+- `DATABASE_URL`
+- `CLIENT_ORIGIN`
+- `PORT=5000`
+
+Run the migration once after deployment:
+
+```bash
+npm run migrate
+npm run seed
+```
+
+### Vercel Frontend
+
+Use `frontend` as the project root and set:
+
+- `VITE_API_BASE_URL=https://your-backend-url/api`
+
 ## Assignment Deliverables
 
 - HLD: `docs/HLD.md`
