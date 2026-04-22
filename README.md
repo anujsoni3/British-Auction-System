@@ -12,6 +12,8 @@ A deployable PERN application for running British Auction style RFQs. Buyers cre
 
 ## Local Setup
 
+Create a Neon PostgreSQL database first, then place the connection string in `backend/.env`.
+
 ```bash
 cd backend
 npm install
@@ -42,3 +44,11 @@ npm run dev
 - Frontend: Vercel or Netlify
 
 Set the backend `DATABASE_URL`, `CLIENT_ORIGIN`, and `PORT`. Set the frontend `VITE_API_BASE_URL` to the deployed backend API URL.
+
+## Assignment Deliverables
+
+- HLD: `docs/HLD.md`
+- Schema design: `docs/SCHEMA.md`
+- Phase plan: `PLAN.md`
+- Backend code: `backend/`
+- Frontend code: `frontend/`
