@@ -10,6 +10,24 @@ function badRequest(message) {
   return error;
 }
 
+function positiveNumber(value, label) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) throw badRequest(`${label} must be a valid non-negative number`);
+  return number;
+}
+
+function positiveInteger(value, label) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 1) throw badRequest(`${label} must be a positive whole number`);
+  return number;
+}
+
+function validDate(value, label) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw badRequest(`${label} must be a valid date`);
+  return date;
+}
+
 async function refreshStatus(client, rfq) {
   const status = resolveStatus(rfq);
   if (status !== rfq.status) {
@@ -50,7 +68,17 @@ router.post('/', async (req, res, next) => {
     if (!EXTENSION_TRIGGERS.includes(extensionTriggerType)) {
       throw badRequest('Invalid extension trigger type');
     }
-    if (new Date(forcedBidCloseTime) <= new Date(bidCloseTime)) {
+    const bidStart = validDate(bidStartTime, 'Bid Start Time');
+    const bidClose = validDate(bidCloseTime, 'Bid Close Time');
+    const forcedClose = validDate(forcedBidCloseTime, 'Forced Bid Close Time');
+    const pickupDate = validDate(pickupServiceDate, 'Pickup / Service Date');
+    const triggerWindow = positiveInteger(triggerWindowMinutes, 'Trigger Window Minutes');
+    const extensionDuration = positiveInteger(extensionDurationMinutes, 'Extension Duration Minutes');
+
+    if (bidClose <= bidStart) {
+      throw badRequest('Bid Close Time must be greater than Bid Start Time');
+    }
+    if (forcedClose <= bidClose) {
       throw badRequest('Forced Bid Close Time must be greater than Bid Close Time');
     }
 
@@ -65,7 +93,7 @@ router.post('/', async (req, res, next) => {
        (reference_id, name, bid_start_time, original_bid_close_time, current_bid_close_time, forced_bid_close_time, pickup_service_date, trigger_window_minutes, extension_duration_minutes, extension_trigger_type, status)
        VALUES ($1,$2,$3,$4,$4,$5,$6,$7,$8,$9,$10)
        RETURNING *`,
-      [referenceId, name, bidStartTime, bidCloseTime, forcedBidCloseTime, pickupServiceDate, triggerWindowMinutes, extensionDurationMinutes, extensionTriggerType, status]
+      [referenceId.trim(), name.trim(), bidStart.toISOString(), bidClose.toISOString(), forcedClose.toISOString(), pickupDate.toISOString().slice(0, 10), triggerWindow, extensionDuration, extensionTriggerType, status]
     );
 
     await pool.query(
@@ -128,8 +156,11 @@ router.post('/:id/bids', async (req, res, next) => {
     const { carrierName, freightCharges, originCharges, destinationCharges, transitTime, quoteValidity } = req.body;
     if (!carrierName || !transitTime || !quoteValidity) throw badRequest('Missing required bid fields');
 
-    const totalPrice = calculateTotalPrice({ freightCharges, originCharges, destinationCharges });
-    if (!Number.isFinite(totalPrice) || totalPrice < 0) throw badRequest('Charges must be valid positive numbers');
+    const freight = positiveNumber(freightCharges, 'Freight charges');
+    const origin = positiveNumber(originCharges, 'Origin charges');
+    const destination = positiveNumber(destinationCharges, 'Destination charges');
+    const validity = validDate(quoteValidity, 'Quote Validity');
+    const totalPrice = calculateTotalPrice({ freightCharges: freight, originCharges: origin, destinationCharges: destination });
 
     const beforeRanked = rankBids(await fetchBids(client, rfq.id));
     const supplier = await client.query(
@@ -144,7 +175,7 @@ router.post('/:id/bids', async (req, res, next) => {
        (rfq_id, supplier_id, freight_charges, origin_charges, destination_charges, total_price, transit_time, quote_validity)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        RETURNING *`,
-      [rfq.id, supplier.rows[0].id, freightCharges, originCharges, destinationCharges, totalPrice, transitTime, quoteValidity]
+      [rfq.id, supplier.rows[0].id, freight, origin, destination, totalPrice, transitTime.trim(), validity.toISOString().slice(0, 10)]
     );
 
     const afterRanked = rankBids(await fetchBids(client, rfq.id));

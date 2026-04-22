@@ -30,6 +30,15 @@ function dateTime(value) {
   return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
+function timeRemaining(closeTime, status) {
+  if (status !== 'Active') return status;
+  const diff = new Date(closeTime).getTime() - Date.now();
+  if (diff <= 0) return 'Close check due';
+  const minutes = Math.floor(diff / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  return `${minutes}m ${String(seconds).padStart(2, '0')}s remaining`;
+}
+
 function toDateTimeLocal(date) {
   const pad = (number) => String(number).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -95,6 +104,7 @@ function AuctionList() {
             </div>
             <dl>
               <div><dt>Lowest bid</dt><dd>{money(rfq.current_lowest_bid)}</dd></div>
+              <div><dt>Countdown</dt><dd>{timeRemaining(rfq.current_bid_close_time, rfq.status)}</dd></div>
               <div><dt>Current close</dt><dd>{dateTime(rfq.current_bid_close_time)}</dd></div>
               <div><dt>Forced close</dt><dd>{dateTime(rfq.forced_bid_close_time)}</dd></div>
             </dl>
@@ -128,6 +138,14 @@ function CreateRfq() {
   async function submit(event) {
     event.preventDefault();
     setError('');
+    if (new Date(form.bidCloseTime) <= new Date(form.bidStartTime)) {
+      setError('Bid Close Time must be greater than Bid Start Time');
+      return;
+    }
+    if (new Date(form.forcedBidCloseTime) <= new Date(form.bidCloseTime)) {
+      setError('Forced Close Time must be greater than Bid Close Time');
+      return;
+    }
     try {
       const rfq = await api('/rfqs', { method: 'POST', body: JSON.stringify(form) });
       navigate(`/auctions/${rfq.id}`);
@@ -186,6 +204,16 @@ function AuctionDetails({ role }) {
     load();
   }, [id]);
 
+  async function runCloseCheck() {
+    try {
+      const result = await api(`/rfqs/${id}/close-check`, { method: 'POST' });
+      setState({ loading: false, error: '', success: `Close check complete. Status: ${result.status}` });
+      await load();
+    } catch (error) {
+      setState({ loading: false, error: error.message, success: '' });
+    }
+  }
+
   if (state.loading && !data) return <main className="page"><p className="notice">Loading auction...</p></main>;
   if (state.error && !data) return <main className="page"><p className="error">{state.error}</p></main>;
 
@@ -200,10 +228,12 @@ function AuctionDetails({ role }) {
         </div>
         <dl>
           <div><dt>Current close</dt><dd>{dateTime(rfq.current_bid_close_time)}</dd></div>
+          <div><dt>Countdown</dt><dd>{timeRemaining(rfq.current_bid_close_time, rfq.status)}</dd></div>
           <div><dt>Forced close</dt><dd>{dateTime(rfq.forced_bid_close_time)}</dd></div>
           <div><dt>Trigger</dt><dd>{triggerLabels[rfq.extension_trigger_type]}</dd></div>
           <div><dt>Window / Extension</dt><dd>{rfq.trigger_window_minutes}m / {rfq.extension_duration_minutes}m</dd></div>
         </dl>
+        <button className="secondary-action" type="button" onClick={runCloseCheck}>Run close check</button>
       </section>
       {state.success && <p className="success">{state.success}</p>}
       {state.error && <p className="error">{state.error}</p>}
@@ -215,7 +245,9 @@ function AuctionDetails({ role }) {
         {role === 'Supplier' && (
           <section className="panel">
             <h2>Submit Quote</h2>
-            <BidForm rfqId={id} onDone={(message) => { setState({ loading: false, error: '', success: message }); load(); }} onError={(message) => setState({ loading: false, error: message, success: '' })} />
+            {rfq.status === 'Active'
+              ? <BidForm rfqId={id} onDone={(message) => { setState({ loading: false, error: '', success: message }); load(); }} onError={(message) => setState({ loading: false, error: message, success: '' })} />
+              : <p className="notice">Bidding is unavailable because this auction is {rfq.status}.</p>}
           </section>
         )}
         {role === 'Buyer' && <section className="panel"><h2>Buyer View</h2><p className="muted">Switch to Supplier to place demo bids. Buyers can monitor rankings and audit trail.</p></section>}

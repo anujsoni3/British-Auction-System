@@ -63,19 +63,18 @@ button, input, select { font: inherit; }
 h1, h2 { margin: 0; line-height: 1.15; color: #14231f; }
 h1 { font-size: clamp(2rem, 5vw, 4.2rem); }
 h2 { font-size: 1.15rem; }
-.primary-action {
+.primary-action, .secondary-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 42px;
   padding: 0 18px;
-  border: 0;
   border-radius: 8px;
-  background: #0f6b5b;
-  color: white;
   font-weight: 800;
   cursor: pointer;
 }
+.primary-action { border: 0; background: #0f6b5b; color: white; }
+.secondary-action { border: 1px solid #bfd3cc; background: #eef5f2; color: #0f3f36; }
 .auction-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -121,7 +120,7 @@ input, select {
   color: #172026;
 }
 .details-hero { padding: 26px; align-items: center; }
-.details-hero dl { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+.details-hero dl { grid-template-columns: repeat(5, minmax(120px, 1fr)); }
 .details-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
