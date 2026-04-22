@@ -41,7 +41,8 @@ export function didAnyRankChange(beforeRanked, afterRanked) {
 }
 
 export function didL1Change(beforeRanked, afterRanked) {
-  return beforeRanked[0]?.supplier_id !== afterRanked[0]?.supplier_id;
+  if (!beforeRanked[0] || !afterRanked[0]) return false;
+  return beforeRanked[0].supplier_id !== afterRanked[0].supplier_id;
 }
 
 export function getExtensionDecision({ rfq, submittedAt, beforeRanked, afterRanked }) {

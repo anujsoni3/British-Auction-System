@@ -94,3 +94,15 @@ test('L1 rank change trigger extends only when lowest supplier changes', () => {
 
   assert.equal(decision.shouldExtend, true);
 });
+
+test('L1 rank change trigger does not extend for first bid with no previous L1', () => {
+  const rfq = { ...baseRfq, extension_trigger_type: 'L1_RANK_CHANGE' };
+  const decision = getExtensionDecision({
+    rfq,
+    submittedAt: '2026-04-22T10:55:00.000Z',
+    beforeRanked: [],
+    afterRanked: rankBids([bid(1, 10, 500)])
+  });
+
+  assert.equal(decision.shouldExtend, false);
+});

@@ -30,9 +30,9 @@ function dateTime(value) {
   return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-function timeRemaining(closeTime, status) {
+function timeRemaining(closeTime, status, now = Date.now()) {
   if (status !== 'Active') return status;
-  const diff = new Date(closeTime).getTime() - Date.now();
+  const diff = new Date(closeTime).getTime() - now;
   if (diff <= 0) return 'Close check due';
   const minutes = Math.floor(diff / 60000);
   const seconds = Math.floor((diff % 60000) / 1000);
@@ -63,7 +63,7 @@ function Layout({ role, setRole }) {
       </header>
       <Routes>
         <Route path="/" element={<Navigate to="/auctions" />} />
-        <Route path="/auctions" element={<AuctionList />} />
+        <Route path="/auctions" element={<AuctionList role={role} />} />
         <Route path="/auctions/:id" element={<AuctionDetails role={role} />} />
         <Route path="/create" element={role === 'Buyer' ? <CreateRfq /> : <Navigate to="/auctions" />} />
       </Routes>
@@ -71,15 +71,21 @@ function Layout({ role, setRole }) {
   );
 }
 
-function AuctionList() {
+function AuctionList({ role }) {
   const [rfqs, setRfqs] = useState([]);
   const [state, setState] = useState({ loading: true, error: '' });
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     api('/rfqs')
       .then(setRfqs)
       .catch((error) => setState({ loading: false, error: error.message }))
       .finally(() => setState((current) => ({ ...current, loading: false })));
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   return (
@@ -89,7 +95,7 @@ function AuctionList() {
           <p className="eyebrow">Auction desk</p>
           <h1>Open British Auctions</h1>
         </div>
-        <Link className="primary-action" to="/create">New RFQ</Link>
+        {role === 'Buyer' && <Link className="primary-action" to="/create">New RFQ</Link>}
       </section>
       {state.loading && <p className="notice">Loading auctions...</p>}
       {state.error && <p className="error">{state.error}</p>}
@@ -104,7 +110,7 @@ function AuctionList() {
             </div>
             <dl>
               <div><dt>Lowest bid</dt><dd>{money(rfq.current_lowest_bid)}</dd></div>
-              <div><dt>Countdown</dt><dd>{timeRemaining(rfq.current_bid_close_time, rfq.status)}</dd></div>
+              <div><dt>Countdown</dt><dd>{timeRemaining(rfq.current_bid_close_time, rfq.status, now)}</dd></div>
               <div><dt>Current close</dt><dd>{dateTime(rfq.current_bid_close_time)}</dd></div>
               <div><dt>Forced close</dt><dd>{dateTime(rfq.forced_bid_close_time)}</dd></div>
             </dl>
@@ -189,6 +195,7 @@ function AuctionDetails({ role }) {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [state, setState] = useState({ loading: true, error: '', success: '' });
+  const [now, setNow] = useState(Date.now());
 
   async function load() {
     setState((current) => ({ ...current, loading: true }));
@@ -203,6 +210,11 @@ function AuctionDetails({ role }) {
   useEffect(() => {
     load();
   }, [id]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   async function runCloseCheck() {
     try {
@@ -228,7 +240,7 @@ function AuctionDetails({ role }) {
         </div>
         <dl>
           <div><dt>Current close</dt><dd>{dateTime(rfq.current_bid_close_time)}</dd></div>
-          <div><dt>Countdown</dt><dd>{timeRemaining(rfq.current_bid_close_time, rfq.status)}</dd></div>
+          <div><dt>Countdown</dt><dd>{timeRemaining(rfq.current_bid_close_time, rfq.status, now)}</dd></div>
           <div><dt>Forced close</dt><dd>{dateTime(rfq.forced_bid_close_time)}</dd></div>
           <div><dt>Trigger</dt><dd>{triggerLabels[rfq.extension_trigger_type]}</dd></div>
           <div><dt>Window / Extension</dt><dd>{rfq.trigger_window_minutes}m / {rfq.extension_duration_minutes}m</dd></div>
