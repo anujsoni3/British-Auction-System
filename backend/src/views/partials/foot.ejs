@@ -1,5 +1,10 @@
     </main>
     <script>
+      const shouldAutoRefresh = document.body.dataset.autoRefresh === 'true';
+      if (shouldAutoRefresh) {
+        setInterval(() => window.location.reload(), 10000);
+      }
+
       document.querySelectorAll('[data-countdown]').forEach((element) => {
         const closeTime = new Date(element.dataset.countdown).getTime();
         const status = element.dataset.status;

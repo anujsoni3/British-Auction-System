@@ -10,6 +10,7 @@ Build a simplified RFQ platform where buyers can create British Auctions and sup
 - Configurable extension triggers for bid activity, any rank change, or L1 rank change.
 - Forced close guarantee so auctions never run beyond the buyer-defined deadline.
 - Server-rendered RFQ and supplier bidding flow for evaluator-friendly walkthroughs.
+- Buyer savings summary showing L1 supplier, final price, total bids, extension count, and savings percentage.
 - Deployable PERN architecture using Neon PostgreSQL.
 
 ## Core Features
@@ -18,7 +19,7 @@ Build a simplified RFQ platform where buyers can create British Auctions and sup
 - Bid submission with freight, origin, destination, transit time, and validity.
 - Automatic total price calculation.
 - Live auction listing with lowest bid and close times.
-- Auction detail page with rankings, quote details, configuration, and activity log.
+- Auction detail page with rankings, quote details, configuration, business summary, and timeline log.
 - Backend validation for forced close and bid eligibility.
 - Sample data and rule checks for assignment verification.
 

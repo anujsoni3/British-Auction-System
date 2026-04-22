@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createRfq, getRfqDetails, listRfqs, placeBid } from '../services/rfqService.js';
+import { closeCheck, createRfq, getRfqDetails, listRfqs, placeBid } from '../services/rfqService.js';
 
 const router = Router();
 
@@ -48,6 +48,15 @@ router.post('/rfqs/:id/bid', async (req, res) => {
   } catch (err) {
     const details = await getRfqDetails(req.params.id);
     res.status(err.status || 400).render('rfq-detail', { ...details, error: err.message });
+  }
+});
+
+router.post('/rfqs/:id/close-check', async (req, res, next) => {
+  try {
+    await closeCheck(req.params.id);
+    res.redirect(`/rfqs/${req.params.id}`);
+  } catch (err) {
+    next(err);
   }
 });
 

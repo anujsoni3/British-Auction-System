@@ -31,7 +31,19 @@ Open:
 1. Create an RFQ with British Auction configuration.
 2. Open RFQ details.
 3. Submit supplier bids.
-4. Watch rankings, current close time, countdown, and logs update.
+4. Watch rankings, current close time, countdown, buyer savings, and timeline update.
+
+## Business Impact View
+
+The RFQ detail page includes buyer-focused result cards:
+
+- L1 supplier
+- current/final best price
+- total bids
+- extension count
+- savings amount and savings percentage from the first bid
+
+This makes the auction outcome clear instead of only showing technical bid records.
 
 ## Deployment
 

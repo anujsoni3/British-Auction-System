@@ -16,7 +16,7 @@ flowchart LR
 
 ## Components
 
-- EJS + Bootstrap frontend handles RFQ creation, listing, details, bid submission, rankings, countdown, and logs.
+- EJS + Bootstrap frontend handles RFQ creation, listing, details, bid submission, rankings, countdown, savings summary, close check, and timeline logs.
 - Express backend exposes REST APIs and owns all validation.
 - Prisma ORM manages database access and migrations.
 - Auction engine calculates rankings, detects trigger conditions, and caps extensions at forced close.

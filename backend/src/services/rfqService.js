@@ -156,7 +156,8 @@ export async function getRfqDetails(id) {
   const updated = await refreshStatus(rfq);
   const rankings = await getRankings(prisma, id);
   const logs = await getLogs(id);
-  return { rfq: updated, bids: rankings, rankings, logs };
+  const summary = buildAuctionSummary(rankings, logs);
+  return { rfq: updated, bids: rankings, rankings, logs, summary };
 }
 
 export async function placeBid(rfqId, input) {
@@ -267,6 +268,26 @@ export async function closeCheck(rfqId) {
     });
   }
   return updated;
+}
+
+export function buildAuctionSummary(rankings, logs) {
+  const firstBid = [...rankings].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
+  const l1Bid = rankings[0];
+  const firstBidPrice = firstBid ? Number(firstBid.price) : 0;
+  const finalPrice = l1Bid ? Number(l1Bid.price) : 0;
+  const savings = firstBid && l1Bid ? Math.max(firstBidPrice - finalPrice, 0) : 0;
+  const savingsPercent = firstBidPrice > 0 ? (savings / firstBidPrice) * 100 : 0;
+  const extensionCount = logs.filter((log) => log.eventType === 'AUCTION_EXTENDED').length;
+
+  return {
+    l1Supplier: l1Bid?.supplier?.name || 'No bids yet',
+    finalPrice,
+    firstBidPrice,
+    totalBids: rankings.length,
+    extensionCount,
+    savings,
+    savingsPercent
+  };
 }
 
 export const rfqHelpers = {

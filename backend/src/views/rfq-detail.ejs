@@ -1,4 +1,6 @@
 <%- include('partials/head') %>
+<% const money = (value) => Number(value || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); %>
+<script>document.body.dataset.autoRefresh = '<%= rfq.status === "ACTIVE" ? "true" : "false" %>';</script>
 <div class="d-flex justify-content-between gap-3 align-items-start mb-4">
   <div>
     <span class="badge text-bg-primary mb-2"><%= rfq.status.replace('_', ' ') %></span>
@@ -8,10 +10,43 @@
   <div class="text-end">
     <div class="fw-bold">Countdown</div>
     <div data-countdown="<%= rfq.bidCloseTime.toISOString() %>" data-status="<%= rfq.status %>"></div>
+    <form method="post" action="/rfqs/<%= rfq.id %>/close-check" class="mt-2">
+      <button class="btn btn-sm btn-outline-primary" type="submit">Run Close Check</button>
+    </form>
   </div>
 </div>
 
 <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card summary-card h-100">
+      <div class="card-body">
+        <div class="metric-label">L1 Supplier</div>
+        <div class="metric-value"><%= summary.l1Supplier %></div>
+        <div class="text-secondary small mt-1">Current best ranked quote</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card summary-card h-100">
+      <div class="card-body">
+        <div class="metric-label">Final / Current Price</div>
+        <div class="metric-value"><%= summary.finalPrice ? money(summary.finalPrice) : 'No bids' %></div>
+        <div class="text-secondary small mt-1"><%= summary.totalBids %> total bids | <%= summary.extensionCount %> extensions</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card summary-card h-100">
+      <div class="card-body">
+        <div class="metric-label">Buyer Savings</div>
+        <div class="metric-value text-success"><%= money(summary.savings) %></div>
+        <div class="text-secondary small mt-1"><%= summary.savingsPercent.toFixed(1) %>% improvement from first bid</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="row g-4">
   <div class="col-lg-8">
@@ -38,10 +73,10 @@
               <tr class="<%= bid.rank === 'L1' ? 'rank-l1' : '' %>">
                 <td><span class="badge text-bg-dark"><%= bid.rank %></span></td>
                 <td class="fw-bold"><%= bid.supplier.name %></td>
-                <td><%= Number(bid.freightCharges).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
-                <td><%= Number(bid.originCharges).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
-                <td><%= Number(bid.destinationCharges).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
-                <td class="fw-bold"><%= Number(bid.price).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) %></td>
+                <td><%= money(bid.freightCharges) %></td>
+                <td><%= money(bid.originCharges) %></td>
+                <td><%= money(bid.destinationCharges) %></td>
+                <td class="fw-bold"><%= money(bid.price) %></td>
                 <td><%= bid.transitTime %></td>
               </tr>
             <% }) %>
@@ -51,16 +86,19 @@
     </div>
 
     <div class="card shadow-sm">
-      <div class="card-header fw-bold">Auction Logs</div>
-      <ul class="list-group list-group-flush">
+      <div class="card-header fw-bold">Auction Timeline</div>
+      <div class="card-body timeline">
         <% logs.forEach((log) => { %>
-          <li class="list-group-item">
+          <% const dotClass = log.eventType === 'RFQ_CREATED' ? 'dot-created' : log.eventType === 'BID_PLACED' ? 'dot-bid' : log.eventType === 'AUCTION_EXTENDED' ? 'dot-extended' : 'dot-status'; %>
+          <% const dotText = log.eventType === 'RFQ_CREATED' ? '✓' : log.eventType === 'BID_PLACED' ? '₹' : log.eventType === 'AUCTION_EXTENDED' ? '+' : 'i'; %>
+          <div class="timeline-item">
+            <span class="timeline-dot <%= dotClass %>"><%= dotText %></span>
             <div class="fw-bold"><%= log.eventType.replaceAll('_', ' ') %></div>
             <div><%= log.message %></div>
             <small class="text-secondary"><%= new Date(log.createdAt).toLocaleString('en-IN') %></small>
-          </li>
+          </div>
         <% }) %>
-      </ul>
+      </div>
     </div>
   </div>
 

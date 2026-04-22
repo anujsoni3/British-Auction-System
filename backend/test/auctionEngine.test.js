@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getRankingsFromBids } from '../src/services/rankingService.js';
-import { rfqHelpers } from '../src/services/rfqService.js';
+import { buildAuctionSummary, rfqHelpers } from '../src/services/rfqService.js';
 
 const baseRfq = {
   id: 'rfq-1',
@@ -78,4 +78,21 @@ test('L1_CHANGE does not extend for first bid', () => {
   const rfq = { ...baseRfq, triggerType: 'L1_CHANGE' };
   const decision = rfqHelpers.extensionDecision(rfq, [], getRankingsFromBids([bid('b1', 's1', 500)]), new Date('2026-04-22T10:55:00.000Z'));
   assert.equal(decision.shouldExtend, false);
+});
+
+test('auction summary shows buyer savings, total bids, and extension count', () => {
+  const rankings = getRankingsFromBids([
+    { ...bid('b1', 's1', 1000, '2026-04-22T10:01:00.000Z'), supplier: { name: 'First Carrier' } },
+    { ...bid('b2', 's2', 800, '2026-04-22T10:05:00.000Z'), supplier: { name: 'Best Carrier' } }
+  ]);
+  const logs = [{ eventType: 'AUCTION_EXTENDED' }, { eventType: 'BID_PLACED' }, { eventType: 'AUCTION_EXTENDED' }];
+  const summary = buildAuctionSummary(rankings, logs);
+
+  assert.equal(summary.l1Supplier, 'Best Carrier');
+  assert.equal(summary.finalPrice, 800);
+  assert.equal(summary.firstBidPrice, 1000);
+  assert.equal(summary.totalBids, 2);
+  assert.equal(summary.extensionCount, 2);
+  assert.equal(summary.savings, 200);
+  assert.equal(summary.savingsPercent, 20);
 });
