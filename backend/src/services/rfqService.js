@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma/client.js';
+import { emitRfqUpdate } from '../realtime/socket.js';
 import { getRankings, getRankingsFromBids, rankingMap } from './rankingService.js';
 
 const TRIGGER_TYPES = ['ANY_BID', 'ANY_RANK_CHANGE', 'L1_CHANGE'];
@@ -117,7 +118,7 @@ export async function createRfq(input) {
   if (bidStartTime >= bidCloseTime) throw httpError(400, 'Bid Start Time must be before Bid Close Time');
   if (forcedCloseTime <= bidCloseTime) throw httpError(400, 'Forced Close Time must be greater than Bid Close Time');
 
-  return prisma.$transaction(async (tx) => {
+  const rfq = await prisma.$transaction(async (tx) => {
     const rfq = await tx.rFQ.create({
       data: {
         name: input.name.trim(),
@@ -141,18 +142,31 @@ export async function createRfq(input) {
 
     return rfq;
   });
+
+  emitRfqUpdate(rfq.id, 'rfq_created');
+  return rfq;
 }
 
 export async function listRfqs() {
   const rfqs = await prisma.rFQ.findMany({
-    include: { bids: { orderBy: [{ price: 'asc' }, { createdAt: 'asc' }], take: 1 } },
+    include: {
+      bids: { orderBy: [{ price: 'asc' }, { createdAt: 'asc' }], take: 1, select: { price: true } },
+      _count: { select: { bids: true } },
+      logs: { where: { eventType: 'AUCTION_EXTENDED' }, select: { id: true } }
+    },
     orderBy: { createdAt: 'desc' }
   });
 
   const rows = [];
   for (const rfq of rfqs) {
     const updated = await refreshStatus(rfq);
-    rows.push({ ...updated, lowestBid: rfq.bids[0]?.price ?? null });
+    rows.push({
+      ...rfq,
+      status: updated.status,
+      lowestBid: rfq.bids[0]?.price ?? null,
+      bidCount: rfq._count.bids,
+      extensionCount: rfq.logs.length
+    });
   }
   return rows;
 }
@@ -176,7 +190,7 @@ export async function placeBid(rfqId, input) {
   if (!input.supplierName?.trim()) throw httpError(400, 'Supplier name is required');
   if (!input.transitTime?.trim()) throw httpError(400, 'Transit time is required');
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const rfq = await tx.rFQ.findUnique({
       where: { id: rfqId },
       include: { bids: { include: { supplier: true }, orderBy: [{ price: 'asc' }, { createdAt: 'asc' }] } }
@@ -252,6 +266,9 @@ export async function placeBid(rfqId, input) {
       extension
     };
   });
+
+  emitRfqUpdate(rfqId, 'bid_placed');
+  return result;
 }
 
 export async function getLogs(rfqId) {
@@ -275,6 +292,7 @@ export async function closeCheck(rfqId) {
       }
     });
   }
+  emitRfqUpdate(rfqId, 'close_check');
   return updated;
 }
 
