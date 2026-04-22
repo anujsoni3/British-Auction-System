@@ -226,7 +226,7 @@ function AuctionDetails({ role }) {
             <article key={log.id} className="log-item">
               <strong>{log.activity_type.replace('_', ' ')}</strong>
               <p>{log.message}</p>
-              {(log.previous_close_time || log.new_close_time) && <small>{dateTime(log.previous_close_time)} -> {dateTime(log.new_close_time)}</small>}
+              {(log.previous_close_time || log.new_close_time) && <small>{dateTime(log.previous_close_time)} {'->'} {dateTime(log.new_close_time)}</small>}
               <time>{dateTime(log.created_at)}</time>
             </article>
           ))}
