@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { env } from './config/env.js';
+import rfqRouter from './routes/rfqs.js';
 
 const app = express();
 
@@ -13,6 +14,15 @@ app.get('/health', (_req, res) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'british-auction-api' });
+});
+
+app.use('/api/rfqs', rfqRouter);
+
+app.use((err, _req, res, _next) => {
+  const status = err.status || 500;
+  res.status(status).json({
+    error: err.message || 'Something went wrong'
+  });
 });
 
 export default app;
