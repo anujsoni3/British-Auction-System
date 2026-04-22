@@ -18,8 +18,7 @@ Create a Neon PostgreSQL database first, then place the connection string in `ba
 cd backend
 npm install
 cp .env.example .env
-npm run migrate
-npm run seed
+npm run setup:db
 npm run dev
 ```
 
@@ -70,6 +69,8 @@ Use `frontend` as the project root and set:
 
 - HLD: `docs/HLD.md`
 - Schema design: `docs/SCHEMA.md`
+- API reference: `docs/API.md`
+- Demo guide: `docs/DEMO_GUIDE.md`
 - Phase plan: `PLAN.md`
 - Backend code: `backend/`
 - Frontend code: `frontend/`
