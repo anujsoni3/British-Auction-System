@@ -31,9 +31,7 @@ export function initSocket(httpServer) {
 
 export function emitRfqUpdate(rfqId, event = 'updated') {
   if (!io || !rfqId) return;
-  io.to(roomName(rfqId)).emit('rfq:updated', {
-    rfqId,
-    event,
-    updatedAt: new Date().toISOString()
-  });
+  const payload = { rfqId, event, updatedAt: new Date().toISOString() };
+  io.to(roomName(rfqId)).emit('rfq:updated', payload);
+  io.emit('rfq:global:updated', payload);
 }

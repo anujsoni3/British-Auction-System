@@ -5,11 +5,12 @@
 Stores British Auction RFQ configuration and current auction state.
 
 Important columns:
-- `reference_id`
+- `referenceId`
 - `name`
 - `bidStartTime`
 - `bidCloseTime`
 - `forcedCloseTime`
+- `pickupServiceDate`
 - `triggerWindowMinutes`
 - `extensionMinutes`
 - `triggerType`
@@ -25,7 +26,7 @@ Validation:
 Stores supplier/carrier names.
 
 Important columns:
-- `carrier_name`
+- `name`
 
 ## `bids`
 
@@ -39,10 +40,11 @@ Important columns:
 - `destination_charges`
 - `price`
 - `transit_time`
+- `quote_validity`
 - `createdAt`
 
 Ranking:
-- Bids are ordered by `total_price ASC, submitted_at ASC`.
+- Bids are ordered by `price ASC, createdAt ASC`.
 
 ## `auction_activity_logs`
 

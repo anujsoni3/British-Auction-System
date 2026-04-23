@@ -1,22 +1,59 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 const now = new Date();
 const minutesFromNow = (minutes) => new Date(now.getTime() + minutes * 60000);
 
 async function main() {
+  // Clean up
   await prisma.auctionLog.deleteMany();
   await prisma.bid.deleteMany();
   await prisma.rFQ.deleteMany();
   await prisma.supplier.deleteMany();
+  await prisma.user.deleteMany();
 
+  // Create test users
+  const buyerPassword = await bcrypt.hash('password123', 10);
+  const supplierPassword = await bcrypt.hash('password123', 10);
+
+  const buyer = await prisma.user.create({
+    data: {
+      email: 'buyer@example.com',
+      password: buyerPassword,
+      name: 'Test Buyer',
+      role: 'BUYER'
+    }
+  });
+
+  const supplier1 = await prisma.user.create({
+    data: {
+      email: 'supplier1@example.com',
+      password: supplierPassword,
+      name: 'Atlas Supplier',
+      role: 'SUPPLIER'
+    }
+  });
+
+  const supplier2 = await prisma.user.create({
+    data: {
+      email: 'supplier2@example.com',
+      password: supplierPassword,
+      name: 'BlueLine Supplier',
+      role: 'SUPPLIER'
+    }
+  });
+
+  // Create suppliers
   const atlas = await prisma.supplier.create({ data: { name: 'Atlas Freight' } });
   const blueline = await prisma.supplier.create({ data: { name: 'BlueLine Logistics' } });
   const cargoswift = await prisma.supplier.create({ data: { name: 'CargoSwift Transport' } });
 
+  // Create RFQs with buyer reference
   const linehaul = await prisma.rFQ.create({
     data: {
       name: 'Mumbai to Delhi Linehaul',
+      buyerId: buyer.id,
       bidStartTime: minutesFromNow(-60),
       bidCloseTime: minutesFromNow(45),
       forcedCloseTime: minutesFromNow(95),
@@ -30,6 +67,7 @@ async function main() {
   const nearClose = await prisma.rFQ.create({
     data: {
       name: 'Pune Export Container Pickup',
+      buyerId: buyer.id,
       bidStartTime: minutesFromNow(-30),
       bidCloseTime: minutesFromNow(7),
       forcedCloseTime: minutesFromNow(22),
@@ -86,6 +124,10 @@ async function main() {
       }
     ]
   });
+
+  console.log('Test users created:');
+  console.log(`  Buyer: buyer@example.com / password123`);
+  console.log(`  Supplier: supplier1@example.com / password123`);
 }
 
 await main();

@@ -27,23 +27,47 @@ enum LogEventType {
   STATUS_UPDATED
 }
 
+enum UserRole {
+  ADMIN
+  BUYER
+  SUPPLIER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(SUPPLIER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rfqs      RFQ[]
+
+  @@index([email])
+}
+
 model RFQ {
   id                   String        @id @default(uuid())
+  referenceId          String?       @unique
   name                 String
+  buyerId              String
   bidStartTime         DateTime
   bidCloseTime         DateTime
   forcedCloseTime      DateTime
+  pickupServiceDate    DateTime?
   triggerWindowMinutes Int
   extensionMinutes     Int
   triggerType          TriggerType
   status               AuctionStatus @default(ACTIVE)
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
+  buyer                User          @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   bids                 Bid[]
   logs                 AuctionLog[]
 
   @@index([status])
   @@index([bidCloseTime])
+  @@index([buyerId])
 }
 
 model Supplier {
@@ -62,6 +86,7 @@ model Bid {
   originCharges      Decimal  @db.Decimal(12, 2)
   destinationCharges Decimal  @db.Decimal(12, 2)
   transitTime        String
+  quoteValidity      String?
   createdAt          DateTime @default(now())
   rfq                RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
   supplier           Supplier @relation(fields: [supplierId], references: [id])

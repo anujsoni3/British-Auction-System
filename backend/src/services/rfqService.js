@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma/client.js';
 import { emitRfqUpdate } from '../realtime/socket.js';
-import { getRankings, getRankingsFromBids, rankingMap } from './rankingService.js';
+import { getRankings, getRankingsFromBids } from './rankingService.js';
+import { AuctionEngine } from './AuctionEngine.js';
 
 const TRIGGER_TYPES = ['ANY_BID', 'ANY_RANK_CHANGE', 'L1_CHANGE'];
 
@@ -29,90 +30,25 @@ function nonNegativeNumber(value, label) {
   return number;
 }
 
-function statusFor(rfq, now = new Date()) {
-  if (now >= rfq.forcedCloseTime) return 'FORCE_CLOSED';
-  if (now > rfq.bidCloseTime) return 'CLOSED';
-  if (now < rfq.bidStartTime) return 'SCHEDULED';
-  return 'ACTIVE';
-}
-
 async function refreshStatus(rfq, client = prisma) {
-  const status = statusFor(rfq);
+  const status = AuctionEngine.getStatus(rfq);
   if (status !== rfq.status) {
     return client.rFQ.update({ where: { id: rfq.id }, data: { status } });
   }
   return { ...rfq, status };
 }
 
-function didAnyRankChange(beforeRankings, afterRankings) {
-  const before = rankingMap(beforeRankings);
-  const after = rankingMap(afterRankings);
-  for (const [supplierId, rank] of after.entries()) {
-    if (before.get(supplierId) !== rank) return true;
-  }
-  return false;
-}
-
-function didL1Change(beforeRankings, afterRankings) {
-  if (!beforeRankings[0] || !afterRankings[0]) return false;
-  return beforeRankings[0].supplierId !== afterRankings[0].supplierId;
-}
-
-function extensionDecision(rfq, beforeRankings, afterRankings, now = new Date()) {
-  const windowStart = new Date(rfq.bidCloseTime.getTime() - rfq.triggerWindowMinutes * 60000);
-  if (now < windowStart || now > rfq.bidCloseTime) {
-    return { shouldExtend: false, reason: 'Bid was outside trigger window' };
-  }
-
-  let triggered = false;
-  let reason = '';
-
-  if (rfq.triggerType === 'ANY_BID') {
-    triggered = true;
-    reason = 'any bid was placed in the trigger window';
-  }
-
-  if (rfq.triggerType === 'ANY_RANK_CHANGE') {
-    triggered = didAnyRankChange(beforeRankings, afterRankings);
-    reason = triggered ? 'supplier ranking changed' : 'no supplier ranking changed';
-  }
-
-  if (rfq.triggerType === 'L1_CHANGE') {
-    triggered = didL1Change(beforeRankings, afterRankings);
-    reason = triggered ? 'L1 bidder changed' : 'L1 bidder did not change';
-  }
-
-  if (!triggered) return { shouldExtend: false, reason };
-
-  const requestedClose = new Date(rfq.bidCloseTime.getTime() + rfq.extensionMinutes * 60000);
-  const newCloseTime = requestedClose > rfq.forcedCloseTime ? rfq.forcedCloseTime : requestedClose;
-  if (newCloseTime.getTime() === rfq.bidCloseTime.getTime()) {
-    return { shouldExtend: false, reason: 'forced close limit reached' };
-  }
-
-  return {
-    shouldExtend: true,
-    reason,
-    previousCloseTime: rfq.bidCloseTime,
-    newCloseTime
-  };
-}
-
-function extensionReasonLabel(reason) {
-  if (reason === 'any bid was placed in the trigger window') return 'new bid activity';
-  if (reason === 'supplier ranking changed') return 'rank change';
-  if (reason === 'L1 bidder changed') return 'L1 change';
-  return reason;
-}
-
 export async function createRfq(input, buyerId) {
   const bidStartTime = parseDate(input.bidStartTime, 'Bid Start Time');
   const bidCloseTime = parseDate(input.bidCloseTime, 'Bid Close Time');
   const forcedCloseTime = parseDate(input.forcedCloseTime, 'Forced Close Time');
+  const pickupServiceDate = parseDate(input.pickupServiceDate, 'Pickup / Service Date');
   const triggerWindowMinutes = positiveInteger(input.triggerWindowMinutes, 'Trigger Window Minutes');
   const extensionMinutes = positiveInteger(input.extensionMinutes, 'Extension Minutes');
   const triggerType = input.triggerType;
+  const referenceId = input.referenceId?.trim();
 
+  if (!referenceId) throw httpError(400, 'RFQ reference ID is required');
   if (!input.name?.trim()) throw httpError(400, 'RFQ name is required');
   if (!TRIGGER_TYPES.includes(triggerType)) throw httpError(400, 'Invalid trigger type');
   if (bidStartTime >= bidCloseTime) throw httpError(400, 'Bid Start Time must be before Bid Close Time');
@@ -121,15 +57,17 @@ export async function createRfq(input, buyerId) {
   const rfq = await prisma.$transaction(async (tx) => {
     const rfq = await tx.rFQ.create({
       data: {
+        referenceId,
         name: input.name.trim(),
         buyerId,
         bidStartTime,
         bidCloseTime,
         forcedCloseTime,
+        pickupServiceDate,
         triggerWindowMinutes,
         extensionMinutes,
         triggerType,
-        status: statusFor({ bidStartTime, bidCloseTime, forcedCloseTime })
+        status: AuctionEngine.getStatus({ bidStartTime, bidCloseTime, forcedCloseTime })
       }
     });
 
@@ -188,19 +126,25 @@ export async function placeBid(rfqId, input, options = {}) {
   const destinationCharges = nonNegativeNumber(input.destinationCharges, 'Destination charges');
   const price = freightCharges + originCharges + destinationCharges;
   const supplierName = options.supplierName || input.supplierName;
+  const quoteValidity = input.quoteValidity?.trim();
 
   if (!supplierName?.trim()) throw httpError(400, 'Supplier name is required');
   if (!input.transitTime?.trim()) throw httpError(400, 'Transit time is required');
+  if (!quoteValidity) throw httpError(400, 'Quote validity is required');
 
   const result = await prisma.$transaction(async (tx) => {
+    // PESSIMISTIC LOCK: Lock the RFQ row to prevent concurrent bid race conditions.
+    const rawRfq = await tx.$queryRaw`SELECT * FROM "RFQ" WHERE id = ${rfqId} FOR UPDATE`;
+    
+    if (!rawRfq || rawRfq.length === 0) throw httpError(404, 'RFQ not found');
+
     const rfq = await tx.rFQ.findUnique({
       where: { id: rfqId },
       include: { bids: { include: { supplier: true }, orderBy: [{ price: 'asc' }, { createdAt: 'asc' }] } }
     });
-    if (!rfq) throw httpError(404, 'RFQ not found');
 
     const now = new Date();
-    const currentStatus = statusFor(rfq, now);
+    const currentStatus = AuctionEngine.getStatus(rfq, now);
     if (currentStatus !== 'ACTIVE') throw httpError(400, `Auction is ${currentStatus}; bids are not allowed`);
 
     const currentLowest = rfq.bids[0];
@@ -223,7 +167,8 @@ export async function placeBid(rfqId, input, options = {}) {
         freightCharges: new Prisma.Decimal(freightCharges),
         originCharges: new Prisma.Decimal(originCharges),
         destinationCharges: new Prisma.Decimal(destinationCharges),
-        transitTime: input.transitTime.trim()
+        transitTime: input.transitTime.trim(),
+        quoteValidity
       },
       include: { supplier: true }
     });
@@ -242,7 +187,9 @@ export async function placeBid(rfqId, input, options = {}) {
       orderBy: [{ price: 'asc' }, { createdAt: 'asc' }]
     });
     const afterRankings = getRankingsFromBids(afterBids);
-    const extension = extensionDecision(rfq, beforeRankings, afterRankings, now);
+    
+    const engine = new AuctionEngine(rfq);
+    const extension = engine.processBidExtension(beforeRankings, afterRankings, now);
 
     let updatedRfq = rfq;
     if (extension.shouldExtend) {
@@ -255,7 +202,7 @@ export async function placeBid(rfqId, input, options = {}) {
         data: {
           rfqId,
           eventType: 'AUCTION_EXTENDED',
-          message: `Auction extended by ${extensionByMinutes} min due to ${extensionReasonLabel(extension.reason)}. Close time moved from ${extension.previousCloseTime.toISOString()} to ${extension.newCloseTime.toISOString()}`
+          message: `Auction extended by ${extensionByMinutes} min due to ${extension.reason}. Close time moved from ${extension.previousCloseTime.toISOString()} to ${extension.newCloseTime.toISOString()}`
         }
       });
     }
@@ -319,8 +266,5 @@ export function buildAuctionSummary(rankings, logs) {
 }
 
 export const rfqHelpers = {
-  statusFor,
-  extensionDecision,
-  didAnyRankChange,
-  didL1Change
+  statusFor: AuctionEngine.getStatus
 };

@@ -1,10 +1,16 @@
 import express from 'express';
 import cors from 'cors';
+import methodOverride from 'method-override';
 import cookieParser from 'cookie-parser';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from './config/env.js';
 import { prisma } from './prisma/client.js';
 import rfqRouter from './routes/rfqRoutes.js';
 import authRouter from './auth/routes.js';
+import { optionalAuth } from './auth/middleware.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
@@ -17,10 +23,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-app.get('/', (_req, res) => {
-  res.json({ ok: true, service: 'british-auction-api' });
-});
+app.use(methodOverride('_method'));
+app.use(optionalAuth);
+app.set('view engine', 'ejs');
+app.set('views', join(__dirname, 'views'));
 
 app.get('/health', (_req, res) => {
   res.send('OK');
@@ -39,7 +45,8 @@ app.get('/api/health/db', async (_req, res, next) => {
   }
 });
 
-app.use('/api/auth', authRouter);
+app.use('/auth', authRouter);
+app.use('/rfq', rfqRouter);
 app.use('/api/rfqs', rfqRouter);
 
 app.use((err, _req, res, _next) => {

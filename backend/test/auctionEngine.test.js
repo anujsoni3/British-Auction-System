@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getRankingsFromBids } from '../src/services/rankingService.js';
 import { buildAuctionSummary, rfqHelpers } from '../src/services/rfqService.js';
+import { AuctionEngine } from '../src/services/AuctionEngine.js';
 
 const baseRfq = {
   id: 'rfq-1',
@@ -37,13 +38,15 @@ test('getRankingsFromBids sorts ascending and assigns L ranks', () => {
 });
 
 test('ANY_BID inside trigger window extends auction', () => {
-  const decision = rfqHelpers.extensionDecision(baseRfq, [], [bid('b1', 's1', 500)], new Date('2026-04-22T10:55:00.000Z'));
+  const engine = new AuctionEngine(baseRfq);
+  const decision = engine.processBidExtension([], [bid('b1', 's1', 500)], new Date('2026-04-22T10:55:00.000Z'));
   assert.equal(decision.shouldExtend, true);
   assert.equal(decision.newCloseTime.toISOString(), '2026-04-22T11:05:00.000Z');
 });
 
 test('bid outside trigger window does not extend auction', () => {
-  const decision = rfqHelpers.extensionDecision(baseRfq, [], [bid('b1', 's1', 500)], new Date('2026-04-22T10:40:00.000Z'));
+  const engine = new AuctionEngine(baseRfq);
+  const decision = engine.processBidExtension([], [bid('b1', 's1', 500)], new Date('2026-04-22T10:40:00.000Z'));
   assert.equal(decision.shouldExtend, false);
 });
 
@@ -53,7 +56,8 @@ test('extension never exceeds forced close time', () => {
     bidCloseTime: new Date('2026-04-22T11:28:00.000Z'),
     forcedCloseTime: new Date('2026-04-22T11:30:00.000Z')
   };
-  const decision = rfqHelpers.extensionDecision(rfq, [], [bid('b1', 's1', 500)], new Date('2026-04-22T11:25:00.000Z'));
+  const engine = new AuctionEngine(rfq);
+  const decision = engine.processBidExtension([], [bid('b1', 's1', 500)], new Date('2026-04-22T11:25:00.000Z'));
   assert.equal(decision.shouldExtend, true);
   assert.equal(decision.newCloseTime.toISOString(), '2026-04-22T11:30:00.000Z');
 });
@@ -62,7 +66,8 @@ test('ANY_RANK_CHANGE extends when supplier ranking changes', () => {
   const rfq = { ...baseRfq, triggerType: 'ANY_RANK_CHANGE' };
   const before = getRankingsFromBids([bid('b1', 's1', 500), bid('b2', 's2', 600)]);
   const after = getRankingsFromBids([...before, bid('b3', 's2', 450, '2026-04-22T10:55:00.000Z')]);
-  const decision = rfqHelpers.extensionDecision(rfq, before, after, new Date('2026-04-22T10:55:00.000Z'));
+  const engine = new AuctionEngine(rfq);
+  const decision = engine.processBidExtension(before, after, new Date('2026-04-22T10:55:00.000Z'));
   assert.equal(decision.shouldExtend, true);
 });
 
@@ -70,13 +75,15 @@ test('L1_CHANGE extends only when existing L1 changes', () => {
   const rfq = { ...baseRfq, triggerType: 'L1_CHANGE' };
   const before = getRankingsFromBids([bid('b1', 's1', 500), bid('b2', 's2', 600)]);
   const after = getRankingsFromBids([...before, bid('b3', 's2', 450, '2026-04-22T10:55:00.000Z')]);
-  const decision = rfqHelpers.extensionDecision(rfq, before, after, new Date('2026-04-22T10:55:00.000Z'));
+  const engine = new AuctionEngine(rfq);
+  const decision = engine.processBidExtension(before, after, new Date('2026-04-22T10:55:00.000Z'));
   assert.equal(decision.shouldExtend, true);
 });
 
 test('L1_CHANGE does not extend for first bid', () => {
   const rfq = { ...baseRfq, triggerType: 'L1_CHANGE' };
-  const decision = rfqHelpers.extensionDecision(rfq, [], getRankingsFromBids([bid('b1', 's1', 500)]), new Date('2026-04-22T10:55:00.000Z'));
+  const engine = new AuctionEngine(rfq);
+  const decision = engine.processBidExtension([], getRankingsFromBids([bid('b1', 's1', 500)]), new Date('2026-04-22T10:55:00.000Z'));
   assert.equal(decision.shouldExtend, false);
 });
 

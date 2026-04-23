@@ -1,6 +1,6 @@
 # API Reference
 
-Base URL: `/rfq`
+Base URL: `/api/rfqs`
 
 ## Health
 
@@ -8,13 +8,13 @@ Base URL: `/rfq`
 
 Returns API health.
 
-`GET /health/db`
+`GET /api/health/db`
 
 Returns database connectivity status.
 
 ## RFQs
 
-`POST /rfq`
+`POST /api/rfqs`
 
 Creates a British Auction RFQ.
 
@@ -27,21 +27,22 @@ Required body:
   "bidStartTime": "2026-04-22T10:00",
   "bidCloseTime": "2026-04-22T11:00",
   "forcedCloseTime": "2026-04-22T12:00",
+  "pickupServiceDate": "2026-04-23T09:00",
   "triggerWindowMinutes": 10,
   "extensionMinutes": 5,
   "triggerType": "ANY_BID"
 }
 ```
 
-`GET /rfq`
+`GET /api/rfqs`
 
 Returns auction listing data including lowest bid, current close, forced close, and status.
 
-`GET /rfq/:id`
+`GET /api/rfqs/:id`
 
 Returns RFQ details, sorted ranked bids, and activity logs.
 
-`POST /rfq/:id/bid`
+`POST /api/rfqs/:id/bid`
 
 Submits a supplier quote.
 
@@ -49,18 +50,22 @@ Required body:
 
 ```json
 {
-  "supplierName": "Atlas Freight",
   "freightCharges": 25000,
   "originCharges": 3000,
   "destinationCharges": 3500,
-  "transitTime": "3 days"
+  "transitTime": "3 days",
+  "quoteValidity": "7 days from bid date"
 }
 ```
 
-`GET /rfq/:id/logs`
+`POST /api/rfqs/:id/bids`
+
+Alias endpoint for supplier bid submission.
+
+`GET /api/rfqs/:id/logs`
 
 Returns auction logs.
 
-`POST /rfq/:id/close-check`
+`POST /api/rfqs/:id/close-check`
 
 Refreshes the auction status using current time.

@@ -7,7 +7,7 @@ A deployable PERN application for running British Auction style RFQs. Buyers cre
 - PostgreSQL / Neon
 - Node.js + Express
 - Prisma ORM
-- EJS + Bootstrap
+- React + Vite + Tailwind CSS
 - REST APIs
 
 ## Local Setup
@@ -24,7 +24,8 @@ npm run dev
 
 Open:
 
-`http://localhost:5000/rfqs`
+- Frontend: `http://localhost:5173`
+- Backend health: `http://localhost:5000/api/health`
 
 ## Evaluator Flow
 
@@ -48,7 +49,8 @@ This makes the auction outcome clear instead of only showing technical bid recor
 ## Deployment
 
 - Database: Neon PostgreSQL
-- Backend + EJS frontend: Render or Railway
+- Backend: Render or Railway
+- Frontend: Vercel or Netlify
 
 Set the backend `DATABASE_URL`, `CLIENT_ORIGIN`, and `PORT`.
 

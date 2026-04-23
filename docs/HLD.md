@@ -4,9 +4,9 @@
 
 ```mermaid
 flowchart LR
-  Buyer[Buyer] --> EJS[EJS + Bootstrap Frontend]
-  Supplier[Supplier] --> EJS
-  EJS --> Express[Node + Express Backend]
+  Buyer[Buyer] --> Web[React + Tailwind Frontend]
+  Supplier[Supplier] --> Web
+  Web --> Express[Node + Express Backend]
   Client[API Client] -->|REST API| Express
   Express --> AuctionEngine[British Auction Engine]
   Express --> Prisma[Prisma ORM]
@@ -16,7 +16,7 @@ flowchart LR
 
 ## Components
 
-- EJS + Bootstrap frontend handles RFQ creation, listing, details, bid submission, rankings, countdown, savings summary, close check, and timeline logs.
+- React + Tailwind frontend handles RFQ creation, listing, details, bid submission, rankings, quote details, configuration view, savings summary, close check, and timeline logs.
 - Express backend exposes REST APIs and owns all validation.
 - Prisma ORM manages database access and migrations.
 - Auction engine calculates rankings, detects trigger conditions, and caps extensions at forced close.
@@ -31,7 +31,7 @@ sequenceDiagram
   participant E as Auction Engine
   participant D as PostgreSQL
 
-  S->>A: POST /rfq/:id/bid
+  S->>A: POST /api/rfqs/:id/bid
   A->>D: Read RFQ and existing bids
   A->>D: Insert supplier and bid through Prisma
   A->>E: Compare before/after ranking
