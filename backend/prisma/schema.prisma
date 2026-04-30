@@ -81,6 +81,7 @@ model Bid {
   id                 String   @id @default(uuid())
   rfqId              String
   supplierId         String
+  carrierName        String?
   price              Decimal  @db.Decimal(12, 2)
   freightCharges     Decimal  @db.Decimal(12, 2)
   originCharges      Decimal  @db.Decimal(12, 2)

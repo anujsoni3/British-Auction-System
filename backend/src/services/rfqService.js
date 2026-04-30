@@ -126,6 +126,7 @@ export async function placeBid(rfqId, input, options = {}) {
   const destinationCharges = nonNegativeNumber(input.destinationCharges, 'Destination charges');
   const price = freightCharges + originCharges + destinationCharges;
   const supplierName = options.supplierName || input.supplierName;
+  const carrierName = input.carrierName?.trim() || null;
   const quoteValidity = input.quoteValidity?.trim();
 
   if (!supplierName?.trim()) throw httpError(400, 'Supplier name is required');
@@ -163,6 +164,7 @@ export async function placeBid(rfqId, input, options = {}) {
       data: {
         rfqId,
         supplierId: supplier.id,
+        carrierName,
         price: new Prisma.Decimal(price),
         freightCharges: new Prisma.Decimal(freightCharges),
         originCharges: new Prisma.Decimal(originCharges),
